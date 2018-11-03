@@ -1,0 +1,20 @@
+language: go
+
+go:
+- '1.11'
+
+# Place the repo at GOPATH/src/${go_import_path} to support PRs from forks.
+go_import_path: github.com/m-lab/gcp-loadbalancer-healthz-proxy
+
+before_install:
+- go get github.com/mattn/goveralls
+
+script:
+# Run "unit tests".
+- go test -v -short -covermode=count -coverprofile=merge.cov github.com/m-lab/gcp-loadbalancer-healthz-proxy
+
+# Coveralls
+- $HOME/gopath/bin/goveralls -coverprofile=merge.cov -service=travis-ci
+
+# Verify that the docker image builds.
+- docker build -t gcp-loadbalancer-healthz-proxy .
