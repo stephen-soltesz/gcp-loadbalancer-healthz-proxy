@@ -1,7 +1,7 @@
-// gcp-service-discovery provides an HTTP-to-insecure-HTTPS proxy.
+// gcp-loadbalancer-proxy provides an HTTP-to-insecure-HTTPS proxy.
 //
-// For example, this can be helpful for Google LoadBalancer health
-// checkers which only support HTTP health-check targets.
+// For example, this can be helpful when deploying GCP LoadBalancer health
+// checks, which currently only support HTTP targets.
 package main
 
 import (
@@ -26,7 +26,7 @@ var (
 
 func init() {
 	flag.StringVar(&rawURL, "url", "https://localhost:6443",
-		"The URL to query (insecurely).")
+		"The base URL to query (insecurely).")
 	flag.StringVar(&rawAddr, "port", ":8080",
 		"Listen on the given address.")
 }
