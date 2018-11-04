@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"log"
@@ -18,6 +19,9 @@ import (
 var (
 	rawURL  string
 	rawAddr string
+
+	// Create a ctx & cancel for
+	ctx, cancelCtx = context.WithCancel(context.Background())
 )
 
 func init() {
@@ -52,11 +56,15 @@ func main() {
 
 	target, err := url.Parse(rawURL)
 	rtx.Must(err, "Failed to parse given url: %s", rawURL)
-	if target.RawQuery != "" || target.RawPath != "" {
+	if target.RawQuery != "" || target.Path != "" {
 		log.Fatal("Do not provide target path or queries. " +
 			"All paths and queries are copied from incoming requests.")
 	}
 
 	http.Handle("/", newReverseProxy(target))
-	log.Fatal(http.ListenAndServe(rawAddr, nil))
+	go func() {
+		log.Fatal(http.ListenAndServe(rawAddr, nil))
+	}()
+
+	<-ctx.Done()
 }

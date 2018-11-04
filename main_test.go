@@ -88,3 +88,19 @@ func Test_newReverseProxy(t *testing.T) {
 		})
 	}
 }
+
+func Test_main(t *testing.T) {
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, "ok")
+		}),
+	)
+	defer ts.Close()
+	rawURL = ts.URL
+	go func() {
+		http.Get("http://localhost" + rawAddr)
+		cancelCtx()
+	}()
+	main()
+}
