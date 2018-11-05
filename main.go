@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -31,7 +32,11 @@ func init() {
 		"Listen on the given address.")
 }
 
-func newReverseProxy(target *url.URL) *httputil.ReverseProxy {
+func newReverseProxy(target *url.URL) (*httputil.ReverseProxy, error) {
+	if target.RawQuery != "" || target.Path != "" {
+		return nil, fmt.Errorf("Do not provide target path or queries. " +
+			"All paths and queries are copied from incoming requests.")
+	}
 	director := func(req *http.Request) {
 		// Override the http "Host:" header to specify target.Host.
 		req.Host = target.Host
@@ -48,7 +53,7 @@ func newReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{
 		Director:  director,
 		Transport: transport,
-	}
+	}, nil
 }
 
 func main() {
@@ -56,12 +61,11 @@ func main() {
 
 	target, err := url.Parse(rawURL)
 	rtx.Must(err, "Failed to parse given url: %s", rawURL)
-	if target.RawQuery != "" || target.Path != "" {
-		log.Fatal("Do not provide target path or queries. " +
-			"All paths and queries are copied from incoming requests.")
-	}
 
-	http.Handle("/", newReverseProxy(target))
+	reverseProxy, err := newReverseProxy(target)
+	rtx.Must(err, "Failed to create reverse proxy: %s", target)
+
+	http.Handle("/", reverseProxy)
 	go func() {
 		log.Fatal(http.ListenAndServe(rawAddr, nil))
 	}()

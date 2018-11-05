@@ -25,6 +25,7 @@ func Test_newReverseProxy(t *testing.T) {
 		path        string
 		want        *httputil.ReverseProxy
 		wantErr     bool
+		targetPath  string
 	}{
 		{
 			name:        "success",
@@ -50,6 +51,13 @@ func Test_newReverseProxy(t *testing.T) {
 			path:        "/healthz?foo=bar&thing=that",
 			fileContent: "ok",
 		},
+		{
+			name:        "failure-reverse-proxy-returns-error",
+			statusCode:  http.StatusOK,
+			path:        "/",
+			fileContent: "ok",
+			targetPath:  "/bar",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -63,9 +71,17 @@ func Test_newReverseProxy(t *testing.T) {
 			defer tls.Close()
 
 			// Setup the reverse proxy & test server to target the tls test server.
-			u, err := url.Parse(tls.URL)
+			u, err := url.Parse(tls.URL + tt.targetPath)
 			rtx.Must(err, "httptest URL could not be parsed: %s", tls.URL)
-			rp := newReverseProxy(u)
+			rp, err := newReverseProxy(u)
+			if err != nil {
+				if tt.targetPath != "" {
+					// If the target path is non zero, then we want this to be an error.
+					return
+				} else {
+					t.Errorf("newReverseProxy error = %v, targetPath %v", err, tt.targetPath)
+				}
+			}
 			ts := httptest.NewServer(rp)
 			defer ts.Close()
 
